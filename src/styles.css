@@ -153,4 +153,6 @@ textarea.result__text { display: block; width: 100%; min-height: 20rem; padding:
   .result[data-tab="translated"] .result__col--original { display: none; }
   .result__col + .result__col { border-left: 0; }
   .button { width: 100%; }
+  /* Linha dos idiomas empilhada: os dois campos ocupam a largura toda, alinhados à esquerda. */
+  .lang-row .field, .lang-row .field:last-child { flex: 1 1 100%; align-items: stretch; }
 }
