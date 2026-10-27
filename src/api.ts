@@ -5,7 +5,10 @@ const API_URL = import.meta.env.VITE_API_URL ?? "";
 
 export const TRANSLATION_UNAVAILABLE = "Tradução indisponível agora; a transcrição foi mantida.";
 
-async function send(path: string, init: RequestInit, fallback: string) {
+export const UNEXPECTED_RESPONSE = "Resposta inesperada do servidor. Tente de novo.";
+
+// `valid` confere o formato da resposta 200: um corpo que não é JSON ou sem os campos vira erro na tela.
+async function send(path: string, init: RequestInit, fallback: string, valid: (data: any) => boolean) {
   let res: Response;
   try {
     res = await fetch(`${API_URL}${path}`, init);
@@ -14,9 +17,10 @@ async function send(path: string, init: RequestInit, fallback: string) {
     throw new Error("Não foi possível conectar ao servidor. Tente de novo.");
   }
   const data = await res.json().catch(() => null);
-  if (!res.ok || !data) {
-    throw new Error(data?.detail ?? `Erro ${res.status} ${fallback}`);
+  if (!res.ok) {
+    throw new Error(typeof data?.detail === "string" ? data.detail : `Erro ${res.status} ${fallback}`);
   }
+  if (!data || !valid(data)) throw new Error(UNEXPECTED_RESPONSE);
   return data;
 }
 
@@ -34,7 +38,9 @@ export async function processDocument(
   body.append("file", file);
   body.append("source_lang", sourceLang);
   body.append("target_lang", targetLang);
-  return send("/ocr", { method: "POST", body }, "ao processar o arquivo.");
+  return send("/ocr", { method: "POST", body }, "ao processar o arquivo.", (d) =>
+    typeof d.original_text === "string" && typeof d.detected_language === "string"
+  );
 }
 
 /** POST /translate. Falhas viram erro com a mensagem do servidor. */
@@ -52,6 +58,7 @@ export async function translateText(
       body: JSON.stringify({ text, source_lang: sourceLang, target_lang: targetLang }),
       signal,
     },
-    "ao traduzir."
+    "ao traduzir.",
+    (d) => typeof d.translated_text === "string"
   );
 }
