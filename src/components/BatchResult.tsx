@@ -5,6 +5,7 @@ import { exportBatch } from "../api";
 import { copyText } from "../copy";
 import { TestBadge } from "./ExternalConsent";
 import { FidelityNote } from "./DocumentEra";
+import WordDoubts from "./WordDoubts";
 
 export const PAGE_STATUS: Record<BatchPage["status"], string> = {
   fila: "Na fila",
@@ -46,14 +47,17 @@ export default function BatchResult({ batch, edits, busy, onEdit, onRetry }: Pro
     setMessage((await copyText(text)) ? `${what} copiado.` : "Não deu para copiar. Selecione o texto e use Ctrl+C.");
   }
 
-  async function download(format: "txt" | "zip") {
+  const [showDoubts, setShowDoubts] = useState(false);
+  const doubts = (page.low_confidence_words ?? []).filter((w) => original.includes(w));
+
+  async function download(format: "txt" | "zip", version: "fiel" | "normalizado" = "fiel") {
     setMessage(null);
     try {
-      const blob = await exportBatch(batch.id, format, edits);
+      const blob = await exportBatch(batch.id, format, edits, version);
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `lote-${batch.id.slice(0, 8)}.${format}`;
+      a.download = `lote-${batch.id.slice(0, 8)}${version === "normalizado" ? "-normalizado" : ""}.${format}`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (e) {
@@ -132,13 +136,27 @@ export default function BatchResult({ batch, edits, busy, onEdit, onRetry }: Pro
           <div className="result" data-tab={tab}>
             <section className="result__col result__col--original">
               <h3 className="result__title">Texto original ({languageName(batch.source_lang)})</h3>
-              <textarea
-                className="result__text"
-                value={original}
-                onChange={(e) => onEdit(page.n, "original_text", e.target.value)}
-                aria-label={`Texto original da página ${page.n}`}
-                spellCheck={false}
-              />
+              {doubts.length > 0 && (
+                <button
+                  type="button"
+                  className="text-button doubts__toggle"
+                  aria-pressed={showDoubts}
+                  onClick={() => setShowDoubts(!showDoubts)}
+                >
+                  {showDoubts ? "Voltar a editar o texto" : `Marcar palavras com pouca certeza (${doubts.length})`}
+                </button>
+              )}
+              {showDoubts && doubts.length > 0 ? (
+                <WordDoubts text={original} words={doubts} />
+              ) : (
+                <textarea
+                  className="result__text"
+                  value={original}
+                  onChange={(e) => onEdit(page.n, "original_text", e.target.value)}
+                  aria-label={`Texto original da página ${page.n}`}
+                  spellCheck={false}
+                />
+              )}
             </section>
             <section className="result__col result__col--translated">
               <h3 className="result__title">Texto traduzido ({target})</h3>
@@ -178,6 +196,9 @@ export default function BatchResult({ batch, edits, busy, onEdit, onRetry }: Pro
         </button>
         <button type="button" className="button button--secondary" onClick={() => download("zip")}>
           Baixar tudo em .zip
+        </button>
+        <button type="button" className="button button--secondary" onClick={() => download("txt", "normalizado")}>
+          Baixar tudo normalizado (.txt)
         </button>
       </div>
       {message && (
