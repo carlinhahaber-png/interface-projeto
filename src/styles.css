@@ -211,6 +211,7 @@ textarea.result__text { display: block; width: 100%; min-height: 20rem; padding:
   .result__col + .result__col { border-left: 0; }
   .button { width: 100%; }
   .pager .button { width: auto; flex: 1; }
+  .pager__select { order: -1; flex-basis: 100%; }  /* seletor inteiro numa linha; os botões embaixo */
   .mode-switch { display: flex; }
   .mode-switch__option { flex: 1; }
   /* Linha dos idiomas empilhada: os dois campos ocupam a largura toda, alinhados à esquerda. */
