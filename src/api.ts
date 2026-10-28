@@ -1,4 +1,4 @@
-import type { ProcessResult, TranslateResult } from "./types";
+import type { Batch, PageEdits, ProcessResult, TranslateResult } from "./types";
 
 // URL do backend, definida no build (VITE_API_URL). Vazia = mesma origem.
 const API_URL = import.meta.env.VITE_API_URL ?? "";
@@ -61,4 +61,57 @@ export async function translateText(
     "ao traduzir.",
     (d) => typeof d.translated_text === "string"
   );
+}
+
+// ---- Lote (/batches): várias imagens e PDFs, lidos uma página por vez no servidor.
+
+const isBatch = (d: any) => typeof d.id === "string" && Array.isArray(d.pages);
+
+/** POST /batches: devolve o lote na fila (o id fica guardado no navegador para voltar depois). */
+export async function createBatch(
+  files: File[],
+  sourceLang: string,
+  targetLang: string,
+  allowExternal = false
+): Promise<Batch> {
+  const body = new FormData();
+  files.forEach((f) => body.append("files", f, f.name));
+  body.append("source_lang", sourceLang);
+  body.append("target_lang", targetLang);
+  if (allowExternal) body.append("allow_external", "true");
+  return send("/batches", { method: "POST", body }, "ao enviar os arquivos.", isBatch);
+}
+
+export async function getBatch(id: string, signal?: AbortSignal): Promise<Batch> {
+  return send(`/batches/${id}`, { signal }, "ao consultar o lote.", isBatch);
+}
+
+/** DELETE /batches/{id}: cancela o lote (o que já foi lido fica). Lote que já tinha terminado é apagado (null). */
+export async function cancelBatch(id: string): Promise<Batch | null> {
+  const data = await send(`/batches/${id}`, { method: "DELETE" }, "ao cancelar.",
+    (d) => isBatch(d) || d.status === "apagado");
+  return isBatch(data) ? data : null;
+}
+
+export async function retryPage(id: string, n: number): Promise<Batch> {
+  return send(`/batches/${id}/pages/${n}/retry`, { method: "POST" }, "ao tentar de novo.", isBatch);
+}
+
+/** Exporta todas as páginas (.txt ou .zip) já com os textos editados na tela. */
+export async function exportBatch(id: string, format: "txt" | "zip", edits: PageEdits): Promise<Blob> {
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/batches/${id}/export?format=${format}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pages: edits }),
+    });
+  } catch {
+    throw new Error("Não foi possível conectar ao servidor. Tente de novo.");
+  }
+  if (!res.ok) {
+    const data = await res.json().catch(() => null);
+    throw new Error(typeof data?.detail === "string" ? data.detail : `Erro ${res.status} ao exportar.`);
+  }
+  return res.blob();
 }
