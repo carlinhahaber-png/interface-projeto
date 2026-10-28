@@ -39,6 +39,15 @@
   }
 }
 
+/* Opções de leitura (data-* no <html>, postos pelo index.html e por ReadingOptions) */
+:root { --reading-font: var(--font-doc); --reading-line: 1.65; }
+:root[data-size="grande"] { font-size: 115%; }
+:root[data-size="maior"] { font-size: 130%; }
+:root[data-spacing="amplo"] { --reading-line: 1.95; }
+:root[data-spacing="maior"] { --reading-line: 2.25; }
+:root[data-font="legivel"] { --font-ui: "Atkinson Hyperlegible", Verdana, Tahoma, sans-serif; --reading-font: var(--font-ui); }
+:root[data-font="legivel"] body { letter-spacing: 0.02em; word-spacing: 0.08em; }
+
 * { box-sizing: border-box; }
 
 body {
@@ -94,7 +103,7 @@ body {
 .button { display: inline-flex; align-items: center; justify-content: center; gap: 0.6rem; padding: 0.8rem 1.6rem; border: 2px solid var(--ink); border-radius: var(--radius); background: var(--ink); color: var(--surface); font: inherit; font-weight: 700; cursor: pointer; transition: background-color 0.15s, border-color 0.15s, color 0.15s, transform 0.15s; }
 .button:active:not(:disabled) { transform: translateY(1px) scale(0.98); }
 .button:hover:not(:disabled) { background: var(--accent); border-color: var(--accent); }
-.button:disabled { background: var(--line); border-color: var(--line); color: var(--muted); cursor: not-allowed; }
+.button:disabled { background: var(--line); border-color: var(--line); color: var(--ink); cursor: not-allowed; }  /* texto em --ink: 4,5:1 também desativado */
 .button--secondary { margin-top: 1rem; background: transparent; color: var(--ink); }
 .button--secondary:hover:not(:disabled) { background: var(--ink); border-color: var(--ink); color: var(--surface); }
 
@@ -116,6 +125,15 @@ body {
 .tips__list li + li { margin-top: 0.2rem; }
 .message--error { color: var(--danger); font-weight: 500; }
 .empty { margin: 0; padding: 1.5rem; border: 1px dashed var(--line); border-radius: var(--radius); color: var(--muted); }
+
+/* Opções de leitura */
+.reading { margin-top: 1rem; }
+.reading__summary { width: fit-content; padding: 0.35rem 0.1rem; color: var(--ink); font-weight: 600; cursor: pointer; }
+.reading__body { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.75rem 1.5rem; margin-top: 0.5rem; padding: 0.75rem 1rem; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+.reading__group { display: flex; flex-wrap: wrap; gap: 0.25rem 0.9rem; margin: 0; padding: 0; border: 0; }
+.reading__group legend { width: 100%; margin-bottom: 0.25rem; padding: 0; }
+.reading__option { display: inline-flex; align-items: center; gap: 0.35rem; cursor: pointer; }
+.reading__option input { width: 1.1rem; height: 1.1rem; accent-color: var(--accent); }
 
 /* Um arquivo / vários arquivos */
 .mode-switch { display: inline-flex; margin-top: 1.5rem; padding: 0.25rem; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
@@ -161,7 +179,7 @@ body {
 .result__col { min-width: 0; padding: 1rem 1.25rem; }
 .result__col + .result__col { border-left: 1px solid var(--line); }
 .result__title { margin: 0 0 0.75rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--ink); font-size: 1rem; }
-.result__text { margin: 0; max-height: 28rem; overflow: auto; font-family: var(--font-doc); font-size: 1.05rem; line-height: 1.65; white-space: pre-wrap; word-break: break-word; }
+.result__text { margin: 0; max-height: 28rem; overflow: auto; font-family: var(--reading-font); font-size: 1.05rem; line-height: var(--reading-line); white-space: pre-wrap; word-break: break-word; }
 textarea.result__text { display: block; width: 100%; min-height: 20rem; padding: 0; border: 0; background: none; color: inherit; resize: vertical; }
 
 /* Botão de tema */
@@ -172,6 +190,8 @@ textarea.result__text { display: block; width: 100%; min-height: 20rem; padding:
 
 /* Rodapé e créditos */
 .footer { margin-top: 3rem; padding-top: 1.25rem; border-top: 2px solid var(--ink); }
+/* Créditos com a identidade de sempre, mesmo com a fonte de leitura fácil ligada. */
+:root[data-font="legivel"] .footer { font-family: "Bricolage Grotesque", system-ui, -apple-system, "Segoe UI", sans-serif; letter-spacing: normal; word-spacing: normal; }
 .credits { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: 0.75rem; margin: 0; padding: 0; list-style: none; }
 .credit { display: flex; align-items: center; gap: 0.85rem; height: 100%; padding: 0.75rem 1rem; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); color: var(--ink); text-decoration: none; transition: border-color 0.15s, transform 0.15s; }
 .credit:hover { border-color: var(--accent); }

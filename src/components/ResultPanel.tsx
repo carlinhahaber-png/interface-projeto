@@ -61,6 +61,17 @@ export default function ResultPanel({
     return () => ctrl.abort();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const [copied, setCopied] = useState<string | null>(null);
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied("Texto copiado.");
+    } catch {
+      setCopied("Não deu para copiar. Selecione o texto e use Ctrl+C.");
+    }
+  }
+
   function download() {
     let content = `${originalLabel}\n${"-".repeat(40)}\n${text}\n`;
     if (translated) {
@@ -150,13 +161,19 @@ export default function ResultPanel({
         </section>
       </div>
 
-      <button
-        type="button"
-        className="button button--secondary"
-        onClick={download}
-      >
-        Baixar em .txt
-      </button>
+      <div className="actions">
+        <button type="button" className="button button--secondary" onClick={download}>
+          Baixar em .txt
+        </button>
+        <button type="button" className="button button--secondary" onClick={copy}>
+          Copiar texto
+        </button>
+      </div>
+      {copied && (
+        <p className="message" role="status">
+          {copied}
+        </p>
+      )}
     </div>
   );
 }
