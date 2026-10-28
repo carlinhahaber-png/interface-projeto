@@ -3,6 +3,7 @@ import type { ProcessResult, TranslateResult } from "../types";
 import { languageName } from "../languages";
 import { externalService, giveConsent, hasConsent, translateExternal, translateText, TRANSLATION_UNAVAILABLE } from "../api";
 import ExternalConsent, { TestBadge } from "./ExternalConsent";
+import { copyText } from "../copy";
 
 interface Props {
   result: ProcessResult;
@@ -64,12 +65,7 @@ export default function ResultPanel({
   const [copied, setCopied] = useState<string | null>(null);
 
   async function copy() {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied("Texto copiado.");
-    } catch {
-      setCopied("Não deu para copiar. Selecione o texto e use Ctrl+C.");
-    }
+    setCopied((await copyText(text)) ? "Texto copiado." : "Não deu para copiar. Selecione o texto e use Ctrl+C.");
   }
 
   function download() {
