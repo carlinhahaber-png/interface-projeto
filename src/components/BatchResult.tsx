@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { Batch, BatchPage, PageEdits } from "../types";
 import { languageName } from "../languages";
 import { exportBatch } from "../api";
+import { TestBadge } from "./ExternalConsent";
 
 export const PAGE_STATUS: Record<BatchPage["status"], string> = {
   fila: "Na fila",
@@ -143,6 +144,7 @@ export default function BatchResult({ batch, edits, busy, onEdit, onRetry }: Pro
             </section>
             <section className="result__col result__col--translated">
               <h3 className="result__title">Texto traduzido ({target})</h3>
+              {page.translated_text && page.notice.includes("serviço externo") && <TestBadge />}
               {page.translated_text || edit.translated_text !== undefined ? (
                 <textarea
                   className="result__text"

@@ -63,6 +63,57 @@ export async function translateText(
   );
 }
 
+// ---- Tradução por serviço externo (Gemini, só latim, só se ligado no servidor)
+
+let providers: Promise<Record<string, string>> | null = null;
+
+/** Serviço externo que traduziria este idioma de origem (ex.: "Google Gemini"), ou null. */
+export async function externalService(sourceLang: string): Promise<string | null> {
+  providers ??= send("/translate/providers", {}, "", (d) => typeof d.external === "object")
+    .then((d) => d.external as Record<string, string>)
+    .catch(() => ({})); // servidor antigo ou fora do ar: nada é externo
+  return (await providers)[sourceLang] ?? null;
+}
+
+const CONSENT_KEY = "externalConsent";
+
+/** A pessoa já confirmou nesta sessão o envio para o serviço externo? */
+export function hasConsent(): boolean {
+  try {
+    return sessionStorage.getItem(CONSENT_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function giveConsent() {
+  try {
+    sessionStorage.setItem(CONSENT_KEY, "1");
+  } catch {
+    // armazenamento bloqueado: pergunta de novo na próxima vez
+  }
+}
+
+/** POST /translate/external: só depois da confirmação na tela. */
+export async function translateExternal(
+  text: string,
+  sourceLang: string,
+  targetLang: string,
+  signal?: AbortSignal
+): Promise<TranslateResult> {
+  return send(
+    "/translate/external",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, source_lang: sourceLang, target_lang: targetLang, consent: true }),
+      signal,
+    },
+    "ao traduzir.",
+    (d) => typeof d.translated_text === "string"
+  );
+}
+
 // ---- Lote (/batches): várias imagens e PDFs, lidos uma página por vez no servidor.
 
 const isBatch = (d: any) => typeof d.id === "string" && Array.isArray(d.pages);

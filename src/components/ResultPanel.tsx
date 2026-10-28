@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import type { ProcessResult, TranslateResult } from "../types";
 import { languageName } from "../languages";
-import { translateText, TRANSLATION_UNAVAILABLE } from "../api";
+import { externalService, giveConsent, hasConsent, translateExternal, translateText, TRANSLATION_UNAVAILABLE } from "../api";
+import ExternalConsent, { TestBadge } from "./ExternalConsent";
 
 interface Props {
   result: ProcessResult;
@@ -21,6 +22,9 @@ export default function ResultPanel({
   const [translation, setTranslation] = useState<TranslateResult | null>(null);
   const [translatedFrom, setTranslatedFrom] = useState(result.original_text);
   const [translating, setTranslating] = useState(true);
+  // Latim pelo Gemini (se ligado no servidor): pergunta antes do 1º envio da sessão.
+  const [askConsent, setAskConsent] = useState<{ service: string; text: string } | null>(null);
+  const [external, setExternal] = useState(false);
 
   const originalLabel = originalLang
     ? `Texto original (${languageName(originalLang)})`
@@ -28,11 +32,20 @@ export default function ResultPanel({
   const translatedLabel = `Texto traduzido (${languageName(targetLang)})`;
   const translated = translation?.translated_text ?? "";
 
-  async function translate(source: string, signal?: AbortSignal) {
+  async function translate(source: string, signal?: AbortSignal, consented = hasConsent()) {
     setTranslating(true);
     setTranslatedFrom(source);
+    setAskConsent(null);
     try {
-      setTranslation(await translateText(source, originalLang, targetLang, signal));
+      const service = await externalService(originalLang);
+      if (service && !consented) {
+        setAskConsent({ service, text: source });
+        setTranslating(false);
+        return;
+      }
+      setExternal(Boolean(service));
+      const send = service ? translateExternal : translateText;
+      setTranslation(await send(source, originalLang, targetLang, signal));
     } catch (e) {
       if (signal?.aborted) return;
       const notice = e instanceof Error ? e.message : TRANSLATION_UNAVAILABLE;
@@ -112,6 +125,20 @@ export default function ResultPanel({
             </p>
           ) : (
             <>
+              {askConsent && (
+                <ExternalConsent
+                  service={askConsent.service}
+                  onAccept={() => {
+                    giveConsent();
+                    translate(askConsent.text, undefined, true);
+                  }}
+                  onDecline={() => {
+                    setAskConsent(null);
+                    setTranslation({ translated_text: "", translation_notice: "Tradução não feita. A transcrição continua aqui." });
+                  }}
+                />
+              )}
+              {translated && external && <TestBadge />}
               {translated && <pre className="result__text">{translated}</pre>}
               {translation?.translation_notice && (
                 <p className="message" role="status">

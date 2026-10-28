@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { Batch, PageEdits } from "../types";
-import { cancelBatch, createBatch, getBatch, retryPage } from "../api";
+import { cancelBatch, createBatch, externalService, getBatch, giveConsent, hasConsent, retryPage } from "../api";
+import ExternalConsent from "./ExternalConsent";
 import BatchPicker from "./BatchPicker";
 import BatchResult from "./BatchResult";
 import LanguageFields from "./LanguageFields";
@@ -91,11 +92,21 @@ export default function BatchMode({ source, target, onSource, onTarget }: Props)
     setEdits({});
   }
 
-  async function start() {
+  const [askConsent, setAskConsent] = useState<string | null>(null);
+
+  async function start(consented = hasConsent()) {
     setBusy(true);
     setError(null);
+    setAskConsent(null);
     try {
-      const b = await createBatch(files, source, target);
+      // Latim pelo Gemini: o servidor só manda o texto para fora com a confirmação (allow_external).
+      const service = await externalService(source);
+      if (service && !consented) {
+        setAskConsent(service);
+        setBusy(false);
+        return;
+      }
+      const b = await createBatch(files, source, target, Boolean(service));
       remember(b.id);
       setEdits({});
       setBatch(b);
@@ -154,7 +165,17 @@ export default function BatchMode({ source, target, onSource, onTarget }: Props)
               onSource={onSource}
               onTarget={onTarget}
             />
-            <button type="button" className="button" disabled={!files.length || busy} onClick={start}>
+            {askConsent && (
+              <ExternalConsent
+                service={askConsent}
+                onAccept={() => {
+                  giveConsent();
+                  start(true);
+                }}
+                onDecline={() => setAskConsent(null)}
+              />
+            )}
+            <button type="button" className="button" disabled={!files.length || busy} onClick={() => start()}>
               {busy ? (
                 <>
                   <span className="spinner" aria-hidden="true" /> Enviando...
