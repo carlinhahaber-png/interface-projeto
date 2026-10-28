@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import UploadZone from "./components/UploadZone";
 import BatchMode, { savedBatchId } from "./components/BatchMode";
 import ResultPanel from "./components/ResultPanel";
@@ -7,11 +7,34 @@ import ReadingOptions from "./components/ReadingOptions";
 import Credits from "./components/Credits";
 import LanguageFields from "./components/LanguageFields";
 import { SOURCE_LANGUAGES, languageName } from "./languages";
-import { processDocument } from "./api";
+import { cancelOcrJob, getOcrJob, processDocument } from "./api";
+import DocumentEra, { FidelityNote, type Era } from "./components/DocumentEra";
 import { detectLanguage } from "./detectLanguage";
 import type { ProcessResult } from "./types";
 
-type Status = "idle" | "loading" | "done" | "error";
+type Status = "idle" | "loading" | "waiting" | "done" | "error";
+// Pedido do modo Antigo que foi para o motor lento: guardado no navegador para voltar depois de fechar a aba.
+type SavedJob = { id: string; fileName: string; status: string };
+const JOB_KEY = "ocrJob";
+const JOB_POLL_MS = 3000;
+
+function savedJob(): SavedJob | null {
+  try {
+    const job = JSON.parse(localStorage.getItem(JOB_KEY) || "null");
+    return job && typeof job.id === "string" ? job : null;
+  } catch {
+    return null;
+  }
+}
+
+function rememberJob(job: SavedJob | null) {
+  try {
+    if (job) localStorage.setItem(JOB_KEY, JSON.stringify(job));
+    else localStorage.removeItem(JOB_KEY);
+  } catch {
+    // armazenamento bloqueado: o pedido vale só nesta aba
+  }
+}
 type Mode = "single" | "batch";
 type Detection = "none" | "detecting" | "done";
 
@@ -30,8 +53,70 @@ export default function App() {
   const [status, setStatus] = useState<Status>("idle");
   const [result, setResult] = useState<ProcessResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [era, setEra] = useState<Era>("modern");
+  const [resultEra, setResultEra] = useState<Era>("modern");
+  const [job, setJob] = useState<SavedJob | null>(savedJob);
+  const [resultName, setResultName] = useState("");
 
-  const loading = status === "loading";
+  // Modo Antigo com motor lento: consulta o pedido até ficar pronto (também depois de fechar e abrir a aba).
+  useEffect(() => {
+    if (!job) return;
+    setStatus("waiting");
+    const ctrl = new AbortController();
+    let timer: number | undefined;
+    async function tick() {
+      try {
+        const j = await getOcrJob(job!.id, ctrl.signal);
+        if (j.status === "pronto") {
+          setResult({ original_text: j.original_text ?? "", translated_text: "", detected_language: j.detected_language ?? "" });
+          setResultEra("ancient");
+          setResultName(job!.fileName);
+          setStatus("done");
+          finishJob();
+        } else if (j.status === "erro" || j.status === "cancelado") {
+          setError(j.status === "erro" ? j.error || "Não foi possível ler o documento." : "Pedido cancelado.");
+          setStatus("error");
+          finishJob();
+        } else {
+          setJob((old) => (old && old.status !== j.status ? { ...old, status: j.status } : old));
+          timer = window.setTimeout(tick, JOB_POLL_MS);
+        }
+      } catch (e) {
+        if (ctrl.signal.aborted) return;
+        const text = e instanceof Error ? e.message : "";
+        if (text.startsWith("Pedido não encontrado")) {
+          setError("Este pedido expirou. Envie o arquivo de novo.");
+          setStatus("error");
+          finishJob();
+          return;
+        }
+        timer = window.setTimeout(tick, JOB_POLL_MS * 2);  // servidor sem resposta: tenta de novo
+      }
+    }
+    tick();
+    return () => {
+      ctrl.abort();
+      window.clearTimeout(timer);
+    };
+  }, [job?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function finishJob() {
+    rememberJob(null);
+    setJob(null);
+  }
+
+  async function cancelJob() {
+    if (!job) return;
+    try {
+      await cancelOcrJob(job.id);
+    } catch {
+      // já terminou ou expirou: some do mesmo jeito
+    }
+    finishJob();
+    setStatus("idle");
+  }
+
+  const loading = status === "loading" || status === "waiting";
   // Sugestão da API, só para idiomas que o OCR sabe ler.
   const suggested = SOURCE_LANGUAGES.some((l) => l.code === result?.suggested_language)
     ? result!.suggested_language!
@@ -71,8 +156,16 @@ export default function App() {
     setStatus("loading");
     setError(null);
     try {
-      const data = await processDocument(file, target, lang);
+      const data = await processDocument(file, target, lang, era);
+      if ("job_id" in data) {
+        const saved = { id: data.job_id, fileName: file.name, status: data.status };
+        rememberJob(saved);
+        setJob(saved);
+        return;
+      }
       setResult(data);
+      setResultEra(era);
+      setResultName(file.name);
       setStatus("done");
     } catch (e) {
       setError(
@@ -109,7 +202,14 @@ export default function App() {
 
       {mode === "batch" ? (
         <main>
-          <BatchMode source={source} target={target} onSource={setSource} onTarget={setTarget} />
+          <BatchMode
+            source={source}
+            target={target}
+            era={era}
+            onSource={setSource}
+            onTarget={setTarget}
+            onEra={setEra}
+          />
         </main>
       ) : (
         <main>
@@ -140,6 +240,14 @@ export default function App() {
                 reset();
               }}
             />
+            <DocumentEra
+              value={era}
+              disabled={loading}
+              onChange={(value) => {
+                setEra(value);
+                reset();
+              }}
+            />
 
             <button
               type="button"
@@ -156,10 +264,24 @@ export default function App() {
               )}
             </button>
 
-            {loading && (
+            {status === "loading" && (
               <p className="message" role="status">
-                Enviando o arquivo e extraindo o texto. Isso pode levar alguns segundos.
+                {era === "ancient"
+                  ? "Enviando o arquivo e lendo como documento antigo. Pode levar mais tempo."
+                  : "Enviando o arquivo e extraindo o texto. Isso pode levar alguns segundos."}
               </p>
+            )}
+            {status === "waiting" && job && (
+              <div className="progress" role="status" aria-live="polite">
+                <progress className="progress__bar" aria-label="Leitura do documento antigo" />
+                <p className="progress__text">
+                  {job.status === "rodando" ? "Lendo o documento antigo" : "Na fila do modo Antigo"} ({job.fileName}).
+                  Pode levar alguns minutos; você pode fechar a aba e voltar depois.
+                </p>
+                <button type="button" className="button button--secondary" onClick={cancelJob}>
+                  Cancelar
+                </button>
+              </div>
             )}
             {error && (
               <p className="message message--error" role="alert">
@@ -168,7 +290,7 @@ export default function App() {
             )}
           </section>
 
-          {result && file && (
+          {result && (file || resultName) && (
             <section className="step step--result">
               <h2 className="step__title">Resultado</h2>
               {suggested && (
@@ -200,11 +322,12 @@ export default function App() {
                   </ul>
                 </aside>
               )}
+              {resultEra === "ancient" && <FidelityNote />}
               <ResultPanel
                 result={result}
                 originalLang={originalLang}
                 targetLang={target}
-                fileName={file.name}
+                fileName={resultName || file?.name || "documento"}
               />
             </section>
           )}

@@ -1,4 +1,4 @@
-import type { Batch, PageEdits, ProcessResult, TranslateResult } from "./types";
+import type { Batch, OcrJob, PageEdits, ProcessResult, TranslateResult } from "./types";
 
 // URL do backend, definida no build (VITE_API_URL). Vazia = mesma origem.
 const API_URL = import.meta.env.VITE_API_URL ?? "";
@@ -32,15 +32,28 @@ async function send(path: string, init: RequestInit, fallback: string, valid: (d
 export async function processDocument(
   file: File,
   targetLang: string,
-  sourceLang: string
-): Promise<ProcessResult> {
+  sourceLang: string,
+  era: "modern" | "ancient" = "modern"
+): Promise<ProcessResult | OcrJob> {
   const body = new FormData();
   body.append("file", file);
   body.append("source_lang", sourceLang);
   body.append("target_lang", targetLang);
+  if (era === "ancient") body.append("document_era", "ancient"); // sem o campo, o /ocr de sempre
   return send("/ocr", { method: "POST", body }, "ao processar o arquivo.", (d) =>
-    typeof d.original_text === "string" && typeof d.detected_language === "string"
+    (typeof d.original_text === "string" && typeof d.detected_language === "string") || typeof d.job_id === "string"
   );
+}
+
+const isJob = (d: any) => typeof d.job_id === "string" && typeof d.status === "string";
+
+/** Documento antigo com motor lento: estado do pedido (fila, rodando, pronto com o texto, erro, cancelado). */
+export async function getOcrJob(id: string, signal?: AbortSignal): Promise<OcrJob> {
+  return send(`/ocr/jobs/${id}`, { signal }, "ao consultar o pedido.", isJob);
+}
+
+export async function cancelOcrJob(id: string): Promise<OcrJob> {
+  return send(`/ocr/jobs/${id}`, { method: "DELETE" }, "ao cancelar.", isJob);
 }
 
 /** POST /translate. Falhas viram erro com a mensagem do servidor. */
@@ -123,13 +136,15 @@ export async function createBatch(
   files: File[],
   sourceLang: string,
   targetLang: string,
-  allowExternal = false
+  allowExternal = false,
+  era: "modern" | "ancient" = "modern"
 ): Promise<Batch> {
   const body = new FormData();
   files.forEach((f) => body.append("files", f, f.name));
   body.append("source_lang", sourceLang);
   body.append("target_lang", targetLang);
   if (allowExternal) body.append("allow_external", "true");
+  if (era === "ancient") body.append("document_era", "ancient");
   return send("/batches", { method: "POST", body }, "ao enviar os arquivos.", isBatch);
 }
 
