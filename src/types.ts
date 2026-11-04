@@ -20,6 +20,7 @@ export interface OcrJob {
 export interface TranslateResult {
   translated_text: string;
   translation_notice: string; // aviso (vazio quando a tradução saiu inteira)
+  translated_by?: string; // só no /translate/external: ex.: "IA (Google Gemini)"
 }
 
 export type PageStatus = "fila" | "rodando" | "pronto" | "erro" | "cancelado" | "interrompido";

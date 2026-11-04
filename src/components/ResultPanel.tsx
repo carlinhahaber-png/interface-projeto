@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { ProcessResult, TranslateResult } from "../types";
 import { languageName } from "../languages";
-import { externalService, giveConsent, hasConsent, translateExternal, translateText, TRANSLATION_UNAVAILABLE } from "../api";
+import { externalService, externalTerms, giveConsent, hasConsent, translateExternal, translateText, TRANSLATION_UNAVAILABLE } from "../api";
 import ExternalConsent, { TestBadge } from "./ExternalConsent";
 import { copyText } from "../copy";
 import { normalizeText } from "../normalize";
@@ -26,7 +26,7 @@ export default function ResultPanel({
   const [translatedFrom, setTranslatedFrom] = useState(result.original_text);
   const [translating, setTranslating] = useState(true);
   // Latim pelo Gemini (se ligado no servidor): pergunta antes do 1º envio da sessão.
-  const [askConsent, setAskConsent] = useState<{ service: string; text: string } | null>(null);
+  const [askConsent, setAskConsent] = useState<{ service: string; text: string; terms: { text: string; url: string } | null } | null>(null);
   const [external, setExternal] = useState(false);
 
   const originalLabel = originalLang
@@ -42,7 +42,7 @@ export default function ResultPanel({
     try {
       const service = await externalService(originalLang);
       if (service && !consented) {
-        setAskConsent({ service, text: source });
+        setAskConsent({ service, text: source, terms: await externalTerms() });
         setTranslating(false);
         return;
       }
@@ -156,6 +156,7 @@ export default function ResultPanel({
               {askConsent && (
                 <ExternalConsent
                   service={askConsent.service}
+                  terms={askConsent.terms}
                   onAccept={() => {
                     giveConsent();
                     translate(askConsent.text, undefined, true);
@@ -166,7 +167,7 @@ export default function ResultPanel({
                   }}
                 />
               )}
-              {translated && external && <TestBadge />}
+              {translated && external && <TestBadge label={translation?.translated_by || undefined} />}
               {translated && <pre className="result__text">{translated}</pre>}
               {translation?.translation_notice && (
                 <p className="message" role="status">
