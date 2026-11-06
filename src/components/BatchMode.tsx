@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { Batch, PageEdits } from "../types";
-import { cancelBatch, createBatch, externalService, getBatch, giveConsent, hasConsent, retryPage } from "../api";
+import { cancelBatch, createBatch, externalService, externalTerms, getBatch, giveConsent, hasConsent, retryPage } from "../api";
 import ExternalConsent from "./ExternalConsent";
 import BatchPicker from "./BatchPicker";
 import BatchResult from "./BatchResult";
@@ -96,6 +96,7 @@ export default function BatchMode({ source, target, era, onSource, onTarget, onE
   }
 
   const [askConsent, setAskConsent] = useState<string | null>(null);
+  const [terms, setTerms] = useState<{ text: string; url: string } | null>(null);
 
   async function start(consented = hasConsent()) {
     setBusy(true);
@@ -105,6 +106,7 @@ export default function BatchMode({ source, target, era, onSource, onTarget, onE
       // Latim pelo Gemini: o servidor só manda o texto para fora com a confirmação (allow_external).
       const service = await externalService(source);
       if (service && !consented) {
+        setTerms(await externalTerms());
         setAskConsent(service);
         setBusy(false);
         return;
@@ -172,6 +174,7 @@ export default function BatchMode({ source, target, era, onSource, onTarget, onE
             {askConsent && (
               <ExternalConsent
                 service={askConsent}
+                terms={terms}
                 onAccept={() => {
                   giveConsent();
                   start(true);

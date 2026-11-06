@@ -79,14 +79,30 @@ export async function translateText(
 
 // ---- Tradução por serviço externo (Gemini, só latim, só se ligado no servidor)
 
-let providers: Promise<Record<string, string>> | null = null;
+interface Providers {
+  external: Record<string, string>;
+  terms?: string; // aviso dos termos do serviço (plano gratuito), para mostrar antes de enviar
+  terms_url?: string;
+}
+
+let providers: Promise<Providers> | null = null;
+
+function loadProviders(): Promise<Providers> {
+  providers ??= send("/translate/providers", {}, "", (d) => typeof d.external === "object")
+    .then((d) => d as Providers)
+    .catch(() => ({ external: {} })); // servidor antigo ou fora do ar: nada é externo
+  return providers;
+}
 
 /** Serviço externo que traduziria este idioma de origem (ex.: "Google Gemini"), ou null. */
 export async function externalService(sourceLang: string): Promise<string | null> {
-  providers ??= send("/translate/providers", {}, "", (d) => typeof d.external === "object")
-    .then((d) => d.external as Record<string, string>)
-    .catch(() => ({})); // servidor antigo ou fora do ar: nada é externo
-  return (await providers)[sourceLang] ?? null;
+  return (await loadProviders()).external[sourceLang] ?? null;
+}
+
+/** Aviso dos termos do serviço externo e o endereço deles (servidor antigo: sem aviso, a tela usa o texto fixo). */
+export async function externalTerms(): Promise<{ text: string; url: string } | null> {
+  const p = await loadProviders();
+  return p.terms && p.terms_url ? { text: p.terms, url: p.terms_url } : null;
 }
 
 const CONSENT_KEY = "externalConsent";
