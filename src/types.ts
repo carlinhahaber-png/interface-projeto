@@ -4,6 +4,8 @@ export interface ProcessResult {
   detected_language: string; // código, ex.: "pt"
   suggested_language?: string; // idioma que o texto parece ter, se diferente do usado
   suggestion_confidence?: number; // 0 a 1
+  low_confidence_words?: string[]; // só quando pedido (word_confidence)
+  normalized_text?: string; // só quando pedido (normalized)
 }
 
 /** /ocr no modo Antigo com motor lento: 202 com o job, consultado em /ocr/jobs/{id}. */
@@ -33,6 +35,7 @@ export interface BatchPage {
   error: string;
   seconds: number | null; // tempo da página, para estimar o que falta
   needs_consent: boolean;
+  low_confidence_words?: string[]; // só quando o lote foi pedido com word_confidence
 }
 
 export interface Batch {

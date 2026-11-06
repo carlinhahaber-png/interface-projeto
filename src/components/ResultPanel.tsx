@@ -4,6 +4,8 @@ import { languageName } from "../languages";
 import { externalService, giveConsent, hasConsent, translateExternal, translateText, TRANSLATION_UNAVAILABLE } from "../api";
 import ExternalConsent, { TestBadge } from "./ExternalConsent";
 import { copyText } from "../copy";
+import { normalizeText } from "../normalize";
+import WordDoubts from "./WordDoubts";
 
 interface Props {
   result: ProcessResult;
@@ -68,8 +70,13 @@ export default function ResultPanel({
     setCopied((await copyText(text)) ? "Texto copiado." : "Não deu para copiar. Selecione o texto e use Ctrl+C.");
   }
 
-  function download() {
-    let content = `${originalLabel}\n${"-".repeat(40)}\n${text}\n`;
+  // Palavras de pouca certeza (se a API mandou): vista só de leitura com as marcas, ligada pela pessoa.
+  const doubts = (result.low_confidence_words ?? []).filter((w) => text.includes(w));
+  const [showDoubts, setShowDoubts] = useState(false);
+
+  function download(normalized = false) {
+    const body = normalized ? normalizeText(text) : text;
+    let content = `${originalLabel}${normalized ? " — versão normalizada (ſ = s, ligaduras separadas)" : ""}\n${"-".repeat(40)}\n${body}\n`;
     if (translated) {
       content += `\n${translatedLabel}\n${"-".repeat(40)}\n${translated}\n`;
     }
@@ -77,7 +84,7 @@ export default function ResultPanel({
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    const suffix = translated ? "traduzido" : "transcricao";
+    const suffix = (translated ? "traduzido" : "transcricao") + (normalized ? "-normalizado" : "");
     a.download = `${fileName.replace(/\.[^.]+$/, "")}-${suffix}.txt`;
     a.click();
     URL.revokeObjectURL(url);
@@ -107,13 +114,27 @@ export default function ResultPanel({
       <div className="result" data-tab={tab}>
         <section className="result__col result__col--original">
           <h3 className="result__title">{originalLabel}</h3>
-          <textarea
-            className="result__text"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            aria-label={originalLabel}
-            spellCheck={false}
-          />
+          {doubts.length > 0 && (
+            <button
+              type="button"
+              className="text-button doubts__toggle"
+              aria-pressed={showDoubts}
+              onClick={() => setShowDoubts(!showDoubts)}
+            >
+              {showDoubts ? "Voltar a editar o texto" : `Marcar palavras com pouca certeza (${doubts.length})`}
+            </button>
+          )}
+          {showDoubts ? (
+            <WordDoubts text={text} words={doubts} />
+          ) : (
+            <textarea
+              className="result__text"
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              aria-label={originalLabel}
+              spellCheck={false}
+            />
+          )}
           {text !== translatedFrom && !translating && (
             <button
               type="button"
@@ -158,8 +179,11 @@ export default function ResultPanel({
       </div>
 
       <div className="actions">
-        <button type="button" className="button button--secondary" onClick={download}>
+        <button type="button" className="button button--secondary" onClick={() => download()}>
           Baixar em .txt
+        </button>
+        <button type="button" className="button button--secondary" onClick={() => download(true)}>
+          Baixar versão normalizada (.txt)
         </button>
         <button type="button" className="button button--secondary" onClick={copy}>
           Copiar texto

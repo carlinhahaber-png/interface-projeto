@@ -40,6 +40,7 @@ export async function processDocument(
   body.append("source_lang", sourceLang);
   body.append("target_lang", targetLang);
   if (era === "ancient") body.append("document_era", "ancient"); // sem o campo, o /ocr de sempre
+  body.append("word_confidence", "true"); // opcional: palavras de pouca certeza para revisar
   return send("/ocr", { method: "POST", body }, "ao processar o arquivo.", (d) =>
     (typeof d.original_text === "string" && typeof d.detected_language === "string") || typeof d.job_id === "string"
   );
@@ -145,6 +146,7 @@ export async function createBatch(
   body.append("target_lang", targetLang);
   if (allowExternal) body.append("allow_external", "true");
   if (era === "ancient") body.append("document_era", "ancient");
+  body.append("word_confidence", "true");
   return send("/batches", { method: "POST", body }, "ao enviar os arquivos.", isBatch);
 }
 
@@ -164,10 +166,15 @@ export async function retryPage(id: string, n: number): Promise<Batch> {
 }
 
 /** Exporta todas as páginas (.txt ou .zip) já com os textos editados na tela. */
-export async function exportBatch(id: string, format: "txt" | "zip", edits: PageEdits): Promise<Blob> {
+export async function exportBatch(
+  id: string,
+  format: "txt" | "zip",
+  edits: PageEdits,
+  version: "fiel" | "normalizado" = "fiel"
+): Promise<Blob> {
   let res: Response;
   try {
-    res = await fetch(`${API_URL}/batches/${id}/export?format=${format}`, {
+    res = await fetch(`${API_URL}/batches/${id}/export?format=${format}&version=${version}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ pages: edits }),
