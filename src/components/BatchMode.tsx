@@ -5,6 +5,7 @@ import ExternalConsent from "./ExternalConsent";
 import BatchPicker from "./BatchPicker";
 import BatchResult from "./BatchResult";
 import LanguageFields from "./LanguageFields";
+import DocumentEra, { type Era } from "./DocumentEra";
 
 const STORAGE_KEY = "batchId";
 const POLL_MS = 2000;
@@ -42,11 +43,13 @@ function estimate(b: Batch): string {
 interface Props {
   source: string;
   target: string;
+  era: Era;
   onSource: (code: string) => void;
   onTarget: (code: string) => void;
+  onEra: (era: Era) => void;
 }
 
-export default function BatchMode({ source, target, onSource, onTarget }: Props) {
+export default function BatchMode({ source, target, era, onSource, onTarget, onEra }: Props) {
   const [files, setFiles] = useState<File[]>([]);
   const [batchId, setBatchId] = useState<string | null>(savedBatchId);
   const [batch, setBatch] = useState<Batch | null>(null);
@@ -106,7 +109,7 @@ export default function BatchMode({ source, target, onSource, onTarget }: Props)
         setBusy(false);
         return;
       }
-      const b = await createBatch(files, source, target, Boolean(service));
+      const b = await createBatch(files, source, target, Boolean(service), era);
       remember(b.id);
       setEdits({});
       setBatch(b);
@@ -165,6 +168,7 @@ export default function BatchMode({ source, target, onSource, onTarget }: Props)
               onSource={onSource}
               onTarget={onTarget}
             />
+            <DocumentEra value={era} disabled={busy} onChange={onEra} />
             {askConsent && (
               <ExternalConsent
                 service={askConsent}

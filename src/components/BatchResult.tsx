@@ -4,6 +4,7 @@ import { languageName } from "../languages";
 import { exportBatch } from "../api";
 import { copyText } from "../copy";
 import { TestBadge } from "./ExternalConsent";
+import { FidelityNote } from "./DocumentEra";
 
 export const PAGE_STATUS: Record<BatchPage["status"], string> = {
   fila: "Na fila",
@@ -92,6 +93,7 @@ export default function BatchResult({ batch, edits, busy, onEdit, onRetry }: Pro
       </nav>
 
       <p className="pager__file">{pageLabel(page)}</p>
+      {batch.document_era === "ancient" && <FidelityNote />}
 
       {failed && (
         <div className={`page-problem page-problem--${page.status}`} role="alert">

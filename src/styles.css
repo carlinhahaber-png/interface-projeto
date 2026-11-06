@@ -135,6 +135,13 @@ body {
 .reading__option { display: inline-flex; align-items: center; gap: 0.35rem; cursor: pointer; }
 .reading__option input { width: 1.1rem; height: 1.1rem; accent-color: var(--accent); }
 
+/* Tipo do documento (Moderno / Antigo) */
+.era { margin: 0 0 1.25rem; padding: 0; border: 0; }
+.era__options { display: flex; flex-wrap: wrap; gap: 0.4rem 1.25rem; margin-top: 0.35rem; }
+.era__option { display: inline-flex; align-items: center; gap: 0.4rem; cursor: pointer; }
+.era__option input { width: 1.1rem; height: 1.1rem; accent-color: var(--accent); }
+.fidelity-note { margin: 0 0 0.75rem; padding: 0.5rem 0.85rem; border-left: 4px solid var(--ink); background: var(--surface); color: var(--ink); font-weight: 500; }
+
 /* Um arquivo / vários arquivos */
 .mode-switch { display: inline-flex; margin-top: 1.5rem; padding: 0.25rem; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
 .mode-switch__option { padding: 0.5rem 1rem; border: 0; border-radius: calc(var(--radius) - 3px); background: none; color: var(--muted); font: inherit; font-weight: 500; cursor: pointer; }

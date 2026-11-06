@@ -6,6 +6,15 @@ export interface ProcessResult {
   suggestion_confidence?: number; // 0 a 1
 }
 
+/** /ocr no modo Antigo com motor lento: 202 com o job, consultado em /ocr/jobs/{id}. */
+export interface OcrJob {
+  job_id: string;
+  status: "fila" | "rodando" | "pronto" | "erro" | "cancelado";
+  original_text?: string;
+  detected_language?: string;
+  error?: string;
+}
+
 export interface TranslateResult {
   translated_text: string;
   translation_notice: string; // aviso (vazio quando a tradução saiu inteira)
@@ -31,6 +40,7 @@ export interface Batch {
   status: "fila" | "rodando" | "pronto" | "cancelado" | "interrompido";
   source_lang: string;
   target_lang: string;
+  document_era?: "modern" | "ancient"; // só vem quando o lote foi pedido no modo Antigo
   total: number;
   done: number;
   errors: number;
