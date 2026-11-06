@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type Theme = "light" | "dark";
 
@@ -12,8 +12,16 @@ function currentTheme(): Theme {
 export default function ThemeToggle() {
   const [theme, setTheme] = useState<Theme>(currentTheme);
 
+  // Sem escolha salva, o botão acompanha o sistema se ele mudar com a página aberta.
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const follow = () => setTheme(currentTheme());
+    media.addEventListener("change", follow);
+    return () => media.removeEventListener("change", follow);
+  }, []);
+
   function toggle() {
-    const next = theme === "dark" ? "light" : "dark";
+    const next = currentTheme() === "dark" ? "light" : "dark";
     document.documentElement.dataset.theme = next;
     try {
       localStorage.setItem("theme", next);
