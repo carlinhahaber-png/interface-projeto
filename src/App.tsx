@@ -11,6 +11,10 @@ import type { ProcessResult } from "./types";
 type Status = "idle" | "loading" | "done" | "error";
 type Detection = "none" | "detecting" | "done";
 
+// Menos de 15 letras: foto sem texto legível (ou idioma errado). Mostra dicas; a API não muda.
+const MIN_LETTERS = 15;
+const littleText = (text: string) => (text.match(/\p{L}/gu)?.length ?? 0) < MIN_LETTERS;
+
 export default function App() {
   const [file, setFile] = useState<File | null>(null);
   const [target, setTarget] = useState("pt");
@@ -187,6 +191,19 @@ export default function App() {
                   Refazer o OCR em {languageName(suggested).toLowerCase()}?
                 </button>
               </p>
+            )}
+            {littleText(result.original_text) && (
+              <aside className="tips" role="status" aria-labelledby="tips-title">
+                <p id="tips-title" className="tips__title">
+                  Pouco ou nenhum texto encontrado. Algumas dicas:
+                </p>
+                <ul className="tips__list">
+                  <li>Fotografe a página de frente, sem inclinar.</li>
+                  <li>Use boa luz e evite sombra sobre o papel.</li>
+                  <li>Enquadre a página inteira, sem cortar as bordas.</li>
+                  <li>Confira o idioma de origem e tente outro, se for o caso.</li>
+                </ul>
+              </aside>
             )}
             <ResultPanel
               result={result}

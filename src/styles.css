@@ -110,6 +110,10 @@ body {
 
 .message { margin: 0.75rem 0 0; color: var(--muted); }
 .suggestion { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; margin-top: 1rem; padding: 0.6rem 1rem; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); color: var(--muted); }
+.tips { margin-top: 1rem; padding: 0.75rem 1rem; background: var(--accent-soft); border-left: 4px solid var(--accent); border-radius: var(--radius); color: var(--ink); }
+.tips__title { margin: 0; font-weight: 600; }
+.tips__list { margin: 0.4rem 0 0; padding-left: 1.2rem; }
+.tips__list li + li { margin-top: 0.2rem; }
 .message--error { color: var(--danger); font-weight: 500; }
 .empty { margin: 0; padding: 1.5rem; border: 1px dashed var(--line); border-radius: var(--radius); color: var(--muted); }
 
