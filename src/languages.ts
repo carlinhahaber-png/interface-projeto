@@ -9,6 +9,14 @@ export const LANGUAGES = [
   { code: "zh", name: "Chinês" },
 ];
 
+// Idiomas que o OCR do backend lê (texto de origem).
+export const SOURCE_LANGUAGES = [
+  { code: "pt", name: "Português" },
+  { code: "es", name: "Espanhol" },
+  { code: "it", name: "Italiano" },
+  { code: "la", name: "Latim" },
+];
+
 export function languageName(code: string): string {
-  return LANGUAGES.find((l) => l.code === code)?.name ?? code;
+  return [...LANGUAGES, ...SOURCE_LANGUAGES].find((l) => l.code === code)?.name ?? code;
 }

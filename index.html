@@ -3,7 +3,19 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
     <title>Transcritor</title>
+    <script>
+      // Aplica o tema e as opções de leitura escolhidos antes de renderizar, para não piscar.
+      try {
+        var t = localStorage.getItem("theme");
+        if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
+        var r = JSON.parse(localStorage.getItem("reading") || "{}");
+        ["font", "size", "spacing"].forEach(function (k) {
+          if (typeof r[k] === "string") document.documentElement.dataset[k] = r[k];
+        });
+      } catch (e) {}
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
