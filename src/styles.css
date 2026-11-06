@@ -143,6 +143,13 @@ body {
 .page-problem__text { margin: 0; color: var(--danger); font-weight: 500; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
+/* Serviço externo (latim pelo Gemini) */
+.consent { margin: 0.75rem 0 1rem; padding: 0.75rem 1rem; border: 2px solid var(--accent); border-radius: var(--radius); background: var(--accent-soft); color: var(--ink); }
+.consent__title { margin: 0; font-weight: 700; }
+.consent__text { margin: 0.4rem 0 0; }
+.consent .button { margin-top: 0.75rem; }
+.badge { display: inline-block; margin: 0 0 0.6rem; padding: 0.2rem 0.6rem; border: 1px solid var(--ink); border-radius: 999px; font-size: 0.85rem; font-weight: 600; }
+
 /* Resultado */
 .tabs { display: none; margin-bottom: 0.75rem; border-bottom: 2px solid var(--line); }
 .tabs__tab { flex: 1; padding: 0.6rem; border: 0; border-bottom: 3px solid transparent; margin-bottom: -2px; background: none; color: var(--muted); font: inherit; font-weight: 500; cursor: pointer; }
