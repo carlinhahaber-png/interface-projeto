@@ -3,6 +3,7 @@ import UploadZone from "./components/UploadZone";
 import BatchMode, { savedBatchId } from "./components/BatchMode";
 import ResultPanel from "./components/ResultPanel";
 import ThemeToggle from "./components/ThemeToggle";
+import ReadingOptions from "./components/ReadingOptions";
 import Credits from "./components/Credits";
 import LanguageFields from "./components/LanguageFields";
 import { SOURCE_LANGUAGES, languageName } from "./languages";
@@ -94,6 +95,8 @@ export default function App() {
         <h1 className="header__name">Transcritor</h1>
         <ThemeToggle />
       </header>
+
+      <ReadingOptions />
 
       <div className="mode-switch" role="group" aria-label="Como enviar">
         <button type="button" className="mode-switch__option" aria-pressed={mode === "single"} onClick={() => setMode("single")}>

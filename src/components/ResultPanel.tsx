@@ -3,6 +3,7 @@ import type { ProcessResult, TranslateResult } from "../types";
 import { languageName } from "../languages";
 import { externalService, giveConsent, hasConsent, translateExternal, translateText, TRANSLATION_UNAVAILABLE } from "../api";
 import ExternalConsent, { TestBadge } from "./ExternalConsent";
+import { copyText } from "../copy";
 
 interface Props {
   result: ProcessResult;
@@ -60,6 +61,12 @@ export default function ResultPanel({
     translate(result.original_text, ctrl.signal);
     return () => ctrl.abort();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const [copied, setCopied] = useState<string | null>(null);
+
+  async function copy() {
+    setCopied((await copyText(text)) ? "Texto copiado." : "Não deu para copiar. Selecione o texto e use Ctrl+C.");
+  }
 
   function download() {
     let content = `${originalLabel}\n${"-".repeat(40)}\n${text}\n`;
@@ -150,13 +157,19 @@ export default function ResultPanel({
         </section>
       </div>
 
-      <button
-        type="button"
-        className="button button--secondary"
-        onClick={download}
-      >
-        Baixar em .txt
-      </button>
+      <div className="actions">
+        <button type="button" className="button button--secondary" onClick={download}>
+          Baixar em .txt
+        </button>
+        <button type="button" className="button button--secondary" onClick={copy}>
+          Copiar texto
+        </button>
+      </div>
+      {copied && (
+        <p className="message" role="status">
+          {copied}
+        </p>
+      )}
     </div>
   );
 }

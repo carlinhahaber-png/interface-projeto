@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { Batch, BatchPage, PageEdits } from "../types";
 import { languageName } from "../languages";
 import { exportBatch } from "../api";
+import { copyText } from "../copy";
 import { TestBadge } from "./ExternalConsent";
 
 export const PAGE_STATUS: Record<BatchPage["status"], string> = {
@@ -41,12 +42,7 @@ export default function BatchResult({ batch, edits, busy, onEdit, onRetry }: Pro
   useEffect(() => setMessage(null), [index]);
 
   async function copy(text: string, what: string) {
-    try {
-      await navigator.clipboard.writeText(text);
-      setMessage(`${what} copiado.`);
-    } catch {
-      setMessage("Não deu para copiar. Selecione o texto e use Ctrl+C.");
-    }
+    setMessage((await copyText(text)) ? `${what} copiado.` : "Não deu para copiar. Selecione o texto e use Ctrl+C.");
   }
 
   async function download(format: "txt" | "zip") {
